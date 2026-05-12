@@ -5,50 +5,11 @@ const state = {
 
 const elements = {
   jsonFile: document.querySelector('#jsonFile'),
-  sourcePayload: null,
-};
-
-const elements = {
-  attendantName: document.querySelector('#attendantName'),
-  jsonFile: document.querySelector('#jsonFile'),
-  loadSample: document.querySelector('#loadSample'),
   generatePdf: document.querySelector('#generatePdf'),
   status: document.querySelector('#status'),
   chatPreview: document.querySelector('#chatPreview'),
   messageCount: document.querySelector('#messageCount'),
 };
-
-const sampleConversation = [
-  {
-    channel: 'Whatsapp',
-    messages: [
-      {
-        type: 'note_action',
-        text: 'messages.inbox_conversation_completed',
-        direction: 'OUTGOING',
-        created_at: '2026-05-12 10:04:00',
-      },
-      {
-        type: 'text',
-        text: '> Alice\n\nOlá! Sou a Alice. Vou verificar seu pedido agora.',
-        direction: 'OUTGOING',
-        created_at: '2026-05-12 10:03:00',
-      },
-      {
-        type: 'text',
-        text: 'Bom dia, gostaria de saber o status da minha entrega.',
-        direction: 'INCOMING',
-        created_at: '2026-05-12 10:01:00',
-      },
-      {
-        type: 'text',
-        text: 'O número do pedido é #4821.',
-        direction: 'INCOMING',
-        created_at: '2026-05-12 10:02:00',
-      },
-    ],
-  },
-];
 
 function setStatus(message, type = 'default') {
   elements.status.textContent = message;
@@ -99,11 +60,13 @@ const visibleMessageTypes = new Set([
 ]);
 
 function parseConversationContent(content) {
+  const normalizedContent = content.trim().replace(/^\uFEFF/, '');
+
   try {
-    return JSON.parse(content);
+    return JSON.parse(normalizedContent);
   } catch (error) {
-    const mergedTopLevelArrays = content.trim().replace(/\]\s*\[/g, ',');
-    if (mergedTopLevelArrays !== content.trim()) {
+    const mergedTopLevelArrays = normalizedContent.replace(/\]\s*\[/g, ',');
+    if (mergedTopLevelArrays !== normalizedContent) {
       return JSON.parse(mergedTopLevelArrays);
     }
 
@@ -148,7 +111,6 @@ function collectMessageRecords(payload) {
           ...message,
           channel: message.channel || item.channel,
         }));
-        return item.messages.map((message) => ({ ...message, channel: message.channel || item.channel }));
       }
 
       return item;
@@ -212,10 +174,6 @@ function detectAttendantName(records) {
 
   if (metadataName) {
     return metadataName;
-function detectAttendantName(records, fallbackName) {
-  const typedName = normalizeText(fallbackName);
-  if (typedName) {
-    return typedName;
   }
 
   return [...records]
@@ -315,7 +273,6 @@ function normalizeMessage(record, index, attendantName) {
 function normalizeConversation(payload) {
   const records = collectMessageRecords(payload).filter(isVisibleConversationMessage);
   const attendantName = detectAttendantName(records);
-  const attendantName = detectAttendantName(records, elements.attendantName.value);
   const messages = records
     .map((record, index) => normalizeMessage(record, index, attendantName))
     .sort((a, b) => a.timestamp.value - b.timestamp.value || a.index - b.index);
@@ -339,7 +296,7 @@ function formatDateTime(timestamp) {
 }
 
 function renderPreview() {
-  elements.messageCount.textContent = `${state.messages.length} mensagem${state.messages.length === 1 ? '' : 's'}`;
+  elements.messageCount.textContent = `${state.messages.length} ${state.messages.length === 1 ? 'mensagem' : 'mensagens'}`;
   elements.generatePdf.disabled = state.messages.length === 0;
 
   if (state.messages.length === 0) {
@@ -374,6 +331,14 @@ function renderPreview() {
   );
 }
 
+function loadConversationPayload(payload) {
+  const normalized = normalizeConversation(payload);
+  state.attendantName = normalized.attendantName;
+  state.messages = normalized.messages;
+  renderPreview();
+  setStatus(`JSON carregado com ${state.messages.length} mensagem(ns), já ordenadas do mais antigo ao mais recente.`, 'success');
+}
+
 async function handleFileUpload(event) {
   const [file] = event.target.files;
   if (!file) {
@@ -381,32 +346,13 @@ async function handleFileUpload(event) {
   }
 
   try {
-    const payload = parseConversationContent(await file.text());
-    const normalized = normalizeConversation(payload);
-    state.attendantName = normalized.attendantName;
-    state.sourcePayload = payload;
-    if (!normalizeText(elements.attendantName.value)) {
-      elements.attendantName.value = normalized.attendantName;
-    }
-    state.messages = normalized.messages;
-    renderPreview();
-    setStatus(`JSON carregado com ${state.messages.length} mensagem(ns), já ordenadas do mais antigo ao mais recente.`, 'success');
+    loadConversationPayload(parseConversationContent(await file.text()));
   } catch (error) {
+    state.attendantName = '';
     state.messages = [];
     renderPreview();
     setStatus(error.message, 'error');
   }
-}
-
-function loadSample() {
-  elements.attendantName.value = '';
-  const normalized = normalizeConversation(sampleConversation);
-  state.attendantName = normalized.attendantName;
-  state.sourcePayload = sampleConversation;
-  elements.attendantName.value = normalized.attendantName;
-  state.messages = normalized.messages;
-  renderPreview();
-  setStatus('Exemplo carregado e ordenado com sucesso.', 'success');
 }
 
 function escapePdfText(text) {
@@ -544,7 +490,6 @@ class PdfDocument {
     this.ensureSpace(bubbleHeight + 12);
     const y = this.y - bubbleHeight;
     this.roundedRect(x, y, bubbleWidth, bubbleHeight, 16, message.role === 'agent' ? 'DCF8C6' : 'FFFFFF');
-    this.rect(x, y, bubbleWidth, bubbleHeight, message.role === 'agent' ? 'DCF8C6' : 'FFFFFF');
 
     let cursor = this.y - 17;
     for (const line of labelLines) {
@@ -665,26 +610,11 @@ function downloadPdf() {
 elements.jsonFile.addEventListener('change', handleFileUpload);
 elements.generatePdf.addEventListener('click', downloadPdf);
 
-elements.loadSample.addEventListener('click', loadSample);
-elements.generatePdf.addEventListener('click', downloadPdf);
-elements.attendantName.addEventListener('input', () => {
-  if (state.messages.length === 0) {
-    return;
-  }
-
-  if (!state.sourcePayload) {
-    return;
-  }
-
-  const normalized = normalizeConversation(state.sourcePayload);
-  state.attendantName = normalized.attendantName;
-  state.messages = normalized.messages;
-  renderPreview();
-});
 
 export {
   collectMessageRecords,
   getOutgoingAttribution,
+  loadConversationPayload,
   normalizeConversation,
   parseConversationContent,
   parseTimestamp,

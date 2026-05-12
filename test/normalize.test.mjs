@@ -2,14 +2,16 @@ import assert from 'node:assert/strict';
 
 const elements = new Map();
 for (const selector of ['#jsonFile', '#generatePdf', '#status', '#chatPreview', '#messageCount']) {
-for (const selector of ['#attendantName', '#jsonFile', '#loadSample', '#generatePdf', '#status', '#chatPreview', '#messageCount']) {
   elements.set(selector, {
     value: '',
     textContent: '',
     className: '',
     disabled: false,
+    children: [],
     addEventListener() {},
-    replaceChildren() {},
+    replaceChildren(...children) {
+      this.children = children;
+    },
     innerHTML: '',
   });
 }
@@ -38,6 +40,7 @@ globalThis.URL = {
 const {
   collectMessageRecords,
   getOutgoingAttribution,
+  loadConversationPayload,
   normalizeConversation,
   parseConversationContent,
   parseTimestamp,
@@ -84,3 +87,10 @@ assert.equal(normalized.messages[1].label, 'Atendente - Alice');
 const concatenated = parseConversationContent(`${JSON.stringify(payload)}${JSON.stringify(payload)}`);
 assert.equal(Array.isArray(concatenated), true);
 assert.equal(concatenated.length, 2);
+
+
+loadConversationPayload(payload);
+assert.equal(elements.get('#messageCount').textContent, '2 mensagens');
+assert.equal(elements.get('#generatePdf').disabled, false);
+assert.equal(elements.get('#chatPreview').children.length, 2);
+assert.match(elements.get('#status').textContent, /JSON carregado com 2 mensagem/);
