@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MIA PDF WhatsApp</title>
+    <link rel="stylesheet" href="./styles.css?v=20260512-2" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero" aria-labelledby="app-title">
+        <p class="eyebrow">WhatsApp → PDF</p>
+        <h1 id="app-title">Transforme conversas em PDFs organizados.</h1>
+        <p class="hero-copy">
+          Carregue o JSON, confira a prévia em ordem cronológica e baixe um PDF no estilo WhatsApp.
+        </p>
+      </section>
+
+      <section class="card controls" aria-label="Configuração do PDF">
+        <div class="field-group upload-box">
+          <label for="jsonFile">Arquivo JSON da conversa</label>
+          <input id="jsonFile" type="file" accept=".json,application/json" />
+          <small>Ao carregar, a prévia aparece automaticamente e o botão de PDF é liberado.</small>
+        </div>
+
+        <div class="actions">
+          <button id="generatePdf" type="button" disabled>Gerar PDF</button>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite">Aguardando arquivo JSON.</p>
+      </section>
+
+      <section class="card preview-card" aria-labelledby="preview-title">
+        <div class="preview-header">
+          <div>
+            <p class="eyebrow">Prévia</p>
+            <h2 id="preview-title">Conversa ordenada</h2>
+          </div>
+          <span id="messageCount" class="badge">0 mensagens</span>
+        </div>
+        <div id="chatPreview" class="chat-preview" aria-live="polite">
+          <p class="empty-state">Carregue um JSON para visualizar a conversa.</p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js?v=20260512-2"></script>
+  </body>
+</html>
