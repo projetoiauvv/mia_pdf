@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MIA PDF WhatsApp</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero" aria-labelledby="app-title">
+        <div>
+          <p class="eyebrow">Conversas WhatsApp → PDF</p>
+          <h1 id="app-title">Gerador de PDF estruturado no estilo WhatsApp</h1>
+          <p class="hero-copy">
+            Envie um JSON de conversa, informe a atendente e gere automaticamente um PDF com as
+            mensagens em ordem cronológica, cabeçalho, rótulos de Cliente e Atendente.
+          </p>
+        </div>
+      </section>
+
+      <section class="card controls" aria-label="Configuração do PDF">
+        <div class="field-group">
+          <label for="attendantName">Nome da atendente</label>
+          <input id="attendantName" type="text" placeholder="Ex.: Ana Souza" autocomplete="name" />
+          <small>Se ficar em branco, o app tenta detectar automaticamente pelo prefixo “> Nome” nas mensagens enviadas.</small>
+        </div>
+
+        <div class="field-group upload-box">
+          <label for="jsonFile">Arquivo JSON da conversa</label>
+          <input id="jsonFile" type="file" accept=".json,application/json" />
+          <small>
+            Aceita o formato exportado com <code>channel: "Whatsapp"</code> e <code>messages</code>,
+            além de listas diretas de mensagens.
+          </small>
+        </div>
+
+        <details class="help-box">
+          <summary>Formato de JSON aceito</summary>
+          <pre><code>[
+  {
+    "channel": "Whatsapp",
+    "messages": [
+      {
+        "type": "text",
+        "text": "Olá, preciso de ajuda",
+        "direction": "INCOMING",
+        "created_at": "2026-05-12 10:00:00"
+      },
+      {
+        "type": "text",
+        "text": "> Alice\n\nOlá! Como posso ajudar?",
+        "direction": "OUTGOING",
+        "created_at": "2026-05-12 10:01:00"
+      }
+    ]
+  }
+]</code></pre>
+          <p>
+            O app ignora eventos internos como <code>note</code> e <code>note_action</code>, usa
+            <code>direction</code> para separar cliente/atendente e remove automaticamente o prefixo
+            <code>&gt; Nome</code> do texto exibido.
+          </p>
+        </details>
+
+        <div class="actions">
+          <button id="loadSample" class="secondary" type="button">Carregar exemplo</button>
+          <button id="generatePdf" type="button" disabled>Gerar PDF</button>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite">Aguardando arquivo JSON.</p>
+      </section>
+
+      <section class="card preview-card" aria-labelledby="preview-title">
+        <div class="preview-header">
+          <div>
+            <p class="eyebrow">Prévia</p>
+            <h2 id="preview-title">Conversa ordenada</h2>
+          </div>
+          <span id="messageCount" class="badge">0 mensagens</span>
+        </div>
+        <div id="chatPreview" class="chat-preview" aria-live="polite">
+          <p class="empty-state">Carregue um JSON para visualizar a conversa.</p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
