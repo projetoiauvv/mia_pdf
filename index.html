@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MIA PDF WhatsApp</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero" aria-labelledby="app-title">
+        <div>
+          <p class="eyebrow">Conversas WhatsApp → PDF</p>
+          <h1 id="app-title">Gerador de PDF estruturado no estilo WhatsApp</h1>
+          <p class="hero-copy">
+            Envie um JSON de conversa e gere automaticamente um PDF com as mensagens em ordem
+            cronológica, cabeçalho e rótulos de Cliente e Atendente definidos pelo próprio JSON.
+          </p>
+        </div>
+      </section>
+
+      <section class="card controls" aria-label="Configuração do PDF">
+        <div class="field-group upload-box">
+          <label for="jsonFile">Arquivo JSON da conversa</label>
+          <input id="jsonFile" type="file" accept=".json,application/json" />
+          <small>
+            A atendente é identificada automaticamente pelos dados do JSON, como o prefixo
+            <code>&gt; Nome</code> em mensagens enviadas.
+          </small>
+        </div>
+
+        <div class="actions">
+          <button id="generatePdf" type="button" disabled>Gerar PDF</button>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite">Aguardando arquivo JSON.</p>
+      </section>
+
+      <section class="card preview-card" aria-labelledby="preview-title">
+        <div class="preview-header">
+          <div>
+            <p class="eyebrow">Prévia</p>
+            <h2 id="preview-title">Conversa ordenada</h2>
+          </div>
+          <span id="messageCount" class="badge">0 mensagens</span>
+        </div>
+        <div id="chatPreview" class="chat-preview" aria-live="polite">
+          <p class="empty-state">Carregue um JSON para visualizar a conversa.</p>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
