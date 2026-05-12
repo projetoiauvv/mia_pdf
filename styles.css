@@ -107,6 +107,9 @@ label {
 input[type="file"] {
   width: 100%;
   padding: 12px;
+input[type="text"],
+input[type="file"] {
+  width: 100%;
   border: 1px solid #d7e2df;
   border-radius: 14px;
   background: #fff;
@@ -114,6 +117,16 @@ input[type="file"] {
 }
 
 small,
+input[type="text"] {
+  padding: 14px 16px;
+}
+
+input[type="file"] {
+  padding: 12px;
+}
+
+small,
+.help-box p,
 .status,
 .empty-state {
   color: var(--muted);
@@ -124,6 +137,26 @@ small,
   border: 1px dashed rgba(7, 94, 84, 0.28);
   border-radius: 18px;
   background: rgba(220, 248, 198, 0.24);
+}
+
+.help-box {
+  border: 1px solid #e0e8e5;
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: #fbfdfc;
+}
+
+.help-box summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.help-box pre {
+  overflow-x: auto;
+  padding: 14px;
+  border-radius: 12px;
+  background: #102a2f;
+  color: #d8fff3;
 }
 
 .actions {
@@ -153,6 +186,11 @@ button:disabled {
   opacity: 0.48;
 }
 
+button.secondary {
+  color: var(--brand);
+  background: #e7f7f2;
+  box-shadow: none;
+}
 
 .status {
   min-height: 1.4em;
@@ -219,6 +257,7 @@ button:disabled {
   max-width: min(74%, 560px);
   padding: 10px 12px 8px;
   border-radius: 18px;
+  border-radius: 14px;
   background: var(--client);
   box-shadow: 0 2px 8px rgba(31, 44, 52, 0.08);
 }

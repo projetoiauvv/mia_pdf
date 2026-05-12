@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 const elements = new Map();
 for (const selector of ['#jsonFile', '#generatePdf', '#status', '#chatPreview', '#messageCount']) {
+for (const selector of ['#attendantName', '#jsonFile', '#loadSample', '#generatePdf', '#status', '#chatPreview', '#messageCount']) {
   elements.set(selector, {
     value: '',
     textContent: '',
