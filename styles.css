@@ -33,25 +33,25 @@ input {
 .app-shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 16px 0;
+  padding: 40px 0;
   display: grid;
   grid-template-columns: minmax(300px, 420px) 1fr;
-  gap: 18px;
+  gap: 24px;
 }
 
 .hero {
   grid-column: 1 / -1;
-  padding: 18px 24px;
+  padding: 36px;
   color: #fff;
-  border-radius: 20px;
+  border-radius: 28px;
   background: linear-gradient(135deg, var(--brand), var(--brand-2));
   box-shadow: var(--shadow);
 }
 
 .eyebrow {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   color: inherit;
-  font-size: 0.68rem;
+  font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -61,12 +61,12 @@ input {
 h1,
 h2 {
   margin: 0;
-  line-height: 1.12;
+  line-height: 1.08;
 }
 
 h1 {
-  max-width: 760px;
-  font-size: clamp(1.45rem, 3vw, 2.45rem);
+  max-width: 850px;
+  font-size: clamp(2rem, 5vw, 4.25rem);
 }
 
 h2 {
@@ -74,11 +74,10 @@ h2 {
 }
 
 .hero-copy {
-  max-width: 720px;
-  margin: 8px 0 0;
+  max-width: 760px;
+  margin: 18px 0 0;
   color: rgba(255, 255, 255, 0.86);
-  font-size: 0.92rem;
-  line-height: 1.35;
+  font-size: 1.08rem;
 }
 
 .card {
@@ -91,9 +90,9 @@ h2 {
 
 .controls {
   align-self: start;
-  padding: 18px;
+  padding: 24px;
   display: grid;
-  gap: 16px;
+  gap: 20px;
 }
 
 .field-group {
@@ -108,6 +107,9 @@ label {
 input[type="file"] {
   width: 100%;
   padding: 12px;
+input[type="text"],
+input[type="file"] {
+  width: 100%;
   border: 1px solid #d7e2df;
   border-radius: 14px;
   background: #fff;
@@ -115,16 +117,46 @@ input[type="file"] {
 }
 
 small,
+input[type="text"] {
+  padding: 14px 16px;
+}
+
+input[type="file"] {
+  padding: 12px;
+}
+
+small,
+.help-box p,
 .status,
 .empty-state {
   color: var(--muted);
 }
 
 .upload-box {
-  padding: 14px;
+  padding: 16px;
   border: 1px dashed rgba(7, 94, 84, 0.28);
   border-radius: 18px;
   background: rgba(220, 248, 198, 0.24);
+}
+
+.help-box {
+  border: 1px solid #e0e8e5;
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: #fbfdfc;
+}
+
+.help-box summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.help-box pre {
+  overflow-x: auto;
+  padding: 14px;
+  border-radius: 12px;
+  background: #102a2f;
+  color: #d8fff3;
 }
 
 .actions {
@@ -154,6 +186,11 @@ button:disabled {
   opacity: 0.48;
 }
 
+button.secondary {
+  color: var(--brand);
+  background: #e7f7f2;
+  box-shadow: none;
+}
 
 .status {
   min-height: 1.4em;
@@ -179,7 +216,7 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 24px;
   color: #fff;
   background: var(--brand);
 }
@@ -195,8 +232,8 @@ button:disabled {
 }
 
 .chat-preview {
-  min-height: 460px;
-  max-height: 680px;
+  min-height: 520px;
+  max-height: 720px;
   overflow-y: auto;
   padding: 22px;
   background-color: var(--bg);
@@ -220,6 +257,7 @@ button:disabled {
   max-width: min(74%, 560px);
   padding: 10px 12px 8px;
   border-radius: 18px;
+  border-radius: 14px;
   background: var(--client);
   box-shadow: 0 2px 8px rgba(31, 44, 52, 0.08);
 }
@@ -253,7 +291,7 @@ button:disabled {
 @media (max-width: 860px) {
   .app-shell {
     grid-template-columns: 1fr;
-    padding: 12px 0;
+    padding: 20px 0;
   }
 
   .hero,
@@ -262,6 +300,6 @@ button:disabled {
   }
 
   .hero {
-    padding: 18px;
+    padding: 24px;
   }
 }
