@@ -1,0 +1,12 @@
+{
+  "name": "mia-pdf-whatsapp",
+  "version": "1.0.0",
+  "description": "Aplicativo web estático para transformar JSON de conversas do WhatsApp em PDF estruturado.",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 4173",
+    "check": "node --check src/app.js",
+    "test": "node test/normalize.test.mjs"
+  },
+  "license": "MIT"
+}
