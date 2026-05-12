@@ -13,6 +13,8 @@
           <p class="eyebrow">Conversas WhatsApp → PDF</p>
           <h1 id="app-title">Gerador de PDF estruturado no estilo WhatsApp</h1>
           <p class="hero-copy">
+            Envie um JSON de conversa e gere automaticamente um PDF com as mensagens em ordem
+            cronológica, cabeçalho e rótulos de Cliente e Atendente definidos pelo próprio JSON.
             Envie um JSON de conversa, informe a atendente e gere automaticamente um PDF com as
             mensagens em ordem cronológica, cabeçalho, rótulos de Cliente e Atendente.
           </p>
@@ -30,6 +32,12 @@
           <label for="jsonFile">Arquivo JSON da conversa</label>
           <input id="jsonFile" type="file" accept=".json,application/json" />
           <small>
+            A atendente é identificada automaticamente pelos dados do JSON, como o prefixo
+            <code>&gt; Nome</code> em mensagens enviadas.
+          </small>
+        </div>
+
+        <div class="actions">
             Aceita o formato exportado com <code>channel: "Whatsapp"</code> e <code>messages</code>,
             além de listas diretas de mensagens.
           </small>

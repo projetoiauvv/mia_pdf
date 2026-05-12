@@ -1,6 +1,10 @@
 const state = {
   attendantName: '',
   messages: [],
+};
+
+const elements = {
+  jsonFile: document.querySelector('#jsonFile'),
   sourcePayload: null,
 };
 
@@ -73,6 +77,14 @@ function pickFirst(record, keys, fallback = '') {
   return fallback;
 }
 
+function pickNestedName(record, keys) {
+  return keys
+    .map((key) => record?.[key])
+    .map((value) => (value && typeof value === 'object' ? pickFirst(value, ['name', 'fullName', 'full_name', 'displayName'], '') : value))
+    .map((value) => normalizeText(value))
+    .find(Boolean) || '';
+}
+
 const visibleMessageTypes = new Set([
   'text',
   'message_list',
@@ -99,14 +111,43 @@ function parseConversationContent(content) {
   }
 }
 
+const parentMetadataKeys = [
+  'attendantName',
+  'attendant_name',
+  'agentName',
+  'agent_name',
+  'assigneeName',
+  'assignee_name',
+  'operatorName',
+];
+
 function isRecordWithMessages(record) {
   return Boolean(record && typeof record === 'object' && Array.isArray(record.messages));
+}
+
+function pickParentMetadata(record) {
+  const metadata = parentMetadataKeys.reduce((values, key) => {
+    if (record?.[key] !== undefined && record[key] !== null) {
+      return { ...values, [key]: record[key] };
+    }
+
+    return values;
+  }, {});
+  const nestedName = pickNestedName(record, ['agent', 'assignee', 'operator', 'attendant', 'assigned_agent']);
+
+  return nestedName ? { ...metadata, agentName: nestedName } : metadata;
 }
 
 function collectMessageRecords(payload) {
   if (Array.isArray(payload)) {
     const records = payload.flatMap((item) => {
       if (isRecordWithMessages(item)) {
+        const metadata = pickParentMetadata(item);
+        return item.messages.map((message) => ({
+          ...metadata,
+          ...message,
+          channel: message.channel || item.channel,
+        }));
         return item.messages.map((message) => ({ ...message, channel: message.channel || item.channel }));
       }
 
@@ -160,6 +201,17 @@ function getOutgoingAttribution(text) {
   };
 }
 
+function detectAttendantName(records) {
+  const metadataName = records
+    .map((record) => normalizeText(pickFirst(
+      record,
+      parentMetadataKeys,
+      '',
+    )) || pickNestedName(record, ['agent', 'assignee', 'operator', 'attendant', 'assigned_agent']))
+    .find(Boolean);
+
+  if (metadataName) {
+    return metadataName;
 function detectAttendantName(records, fallbackName) {
   const typedName = normalizeText(fallbackName);
   if (typedName) {
@@ -262,6 +314,7 @@ function normalizeMessage(record, index, attendantName) {
 
 function normalizeConversation(payload) {
   const records = collectMessageRecords(payload).filter(isVisibleConversationMessage);
+  const attendantName = detectAttendantName(records);
   const attendantName = detectAttendantName(records, elements.attendantName.value);
   const messages = records
     .map((record, index) => normalizeMessage(record, index, attendantName))
@@ -449,6 +502,25 @@ class PdfDocument {
     this.current.push(`${hexToRgb(color)} rg f`);
   }
 
+  roundedRect(x, y, width, height, radius, color) {
+    const r = Math.min(radius, width / 2, height / 2);
+    const k = 0.5522847498;
+    const right = x + width;
+    const top = y + height;
+    const c = r * k;
+
+    this.current.push(`${hexToRgb(color)} rg`);
+    this.current.push(`${(x + r).toFixed(2)} ${y.toFixed(2)} m`);
+    this.current.push(`${(right - r).toFixed(2)} ${y.toFixed(2)} l`);
+    this.current.push(`${(right - r + c).toFixed(2)} ${y.toFixed(2)} ${(right).toFixed(2)} ${(y + r - c).toFixed(2)} ${(right).toFixed(2)} ${(y + r).toFixed(2)} c`);
+    this.current.push(`${right.toFixed(2)} ${(top - r).toFixed(2)} l`);
+    this.current.push(`${right.toFixed(2)} ${(top - r + c).toFixed(2)} ${(right - r + c).toFixed(2)} ${top.toFixed(2)} ${(right - r).toFixed(2)} ${top.toFixed(2)} c`);
+    this.current.push(`${(x + r).toFixed(2)} ${top.toFixed(2)} l`);
+    this.current.push(`${(x + r - c).toFixed(2)} ${top.toFixed(2)} ${x.toFixed(2)} ${(top - r + c).toFixed(2)} ${x.toFixed(2)} ${(top - r).toFixed(2)} c`);
+    this.current.push(`${x.toFixed(2)} ${(y + r).toFixed(2)} l`);
+    this.current.push(`${x.toFixed(2)} ${(y + r - c).toFixed(2)} ${(x + r - c).toFixed(2)} ${y.toFixed(2)} ${(x + r).toFixed(2)} ${y.toFixed(2)} c f`);
+  }
+
   text(text, x, y, size = 11, color = '1F2C34', font = 'Helvetica') {
     const fontKey = font === 'Helvetica-Bold' ? 'F2' : 'F1';
     this.current.push(`BT /${fontKey} ${size} Tf ${hexToRgb(color)} rg ${(x).toFixed(2)} ${(y).toFixed(2)} Td (${escapePdfText(text)}) Tj ET`);
@@ -471,6 +543,7 @@ class PdfDocument {
 
     this.ensureSpace(bubbleHeight + 12);
     const y = this.y - bubbleHeight;
+    this.roundedRect(x, y, bubbleWidth, bubbleHeight, 16, message.role === 'agent' ? 'DCF8C6' : 'FFFFFF');
     this.rect(x, y, bubbleWidth, bubbleHeight, message.role === 'agent' ? 'DCF8C6' : 'FFFFFF');
 
     let cursor = this.y - 17;
@@ -590,6 +663,8 @@ function downloadPdf() {
 }
 
 elements.jsonFile.addEventListener('change', handleFileUpload);
+elements.generatePdf.addEventListener('click', downloadPdf);
+
 elements.loadSample.addEventListener('click', loadSample);
 elements.generatePdf.addEventListener('click', downloadPdf);
 elements.attendantName.addEventListener('input', () => {

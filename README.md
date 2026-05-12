@@ -5,6 +5,11 @@ Aplicativo web estático para transformar um JSON de conversa do WhatsApp em um 
 ## O que ele faz
 
 - Recebe um arquivo `.json` com mensagens de conversa.
+- Usa os próprios dados do JSON para identificar a atendente, incluindo metadados de agente/assignee ou o prefixo `> Alice\n\nMensagem` em mensagens enviadas.
+- Corrige a ordem das mensagens do mais antigo para o mais recente.
+- Identifica mensagens do cliente e da atendente por `direction`, `fromMe`, `isFromMe`, `role` ou campos semelhantes.
+- Ignora eventos internos como `note` e `note_action`, mantendo mensagens visíveis como `text` e `message_list`.
+- Remove automaticamente o prefixo de atendente antes de exibir e gerar o PDF.
 - Reconhece o formato real de exportação com `[{ "channel": "Whatsapp", "messages": [...] }]`, além de listas diretas ou objetos com `messages`, `conversation`, `data`, `chat`, `items` ou `rows`.
 - Corrige a ordem das mensagens do mais antigo para o mais recente.
 - Identifica mensagens do cliente e da atendente por `direction`, `fromMe`, `isFromMe`, `role` ou campos semelhantes.

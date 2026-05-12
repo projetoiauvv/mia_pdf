@@ -104,6 +104,9 @@ label {
   font-weight: 800;
 }
 
+input[type="file"] {
+  width: 100%;
+  padding: 12px;
 input[type="text"],
 input[type="file"] {
   width: 100%;
@@ -113,6 +116,7 @@ input[type="file"] {
   color: var(--ink);
 }
 
+small,
 input[type="text"] {
   padding: 14px 16px;
 }
@@ -252,6 +256,7 @@ button.secondary {
   width: fit-content;
   max-width: min(74%, 560px);
   padding: 10px 12px 8px;
+  border-radius: 18px;
   border-radius: 14px;
   background: var(--client);
   box-shadow: 0 2px 8px rgba(31, 44, 52, 0.08);
