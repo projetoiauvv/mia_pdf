@@ -50,6 +50,7 @@ const visibleMessageTypes = new Set([
   'text',
   'message_list',
   'image',
+  'image_url',
   'audio',
   'video',
   'document',
@@ -57,7 +58,17 @@ const visibleMessageTypes = new Set([
   'location',
   'contacts',
   'sticker',
+  'note_action',
+  'note',
 ]);
+
+const noteActionMessages = {
+  'messages.inbox_ticket_assigned': 'A conversa foi movida para a fila porque o contato iniciou a conversa.',
+  'messages.inbox_conversation_unassigned_auto': 'A conversa recebeu um Ticket',
+  'messages.inbox_assigned_to_agent': 'Conversa atribuida a um agente',
+  'messages.inbox_conversation_completed': 'A conversa foi encerrada',
+  'messages.inbox_conversation_completed_sf': 'A conversa foi encerrada via Smart Flow',
+};
 
 function parseConversationContent(content) {
   const normalizedContent = content.trim().replace(/^\uFEFF/, '');
@@ -144,11 +155,11 @@ function isVisibleConversationMessage(record) {
   const type = normalizeText(record.type).toLowerCase();
   const text = normalizeText(pickFirst(record, ['text', 'body', 'message', 'content', 'caption', 'transcription'], ''));
 
-  if (!text) {
+  if (!visibleMessageTypes.has(type) && type) {
     return false;
   }
 
-  return !type || visibleMessageTypes.has(type);
+  return Boolean(text || ['image_url', 'location'].includes(type));
 }
 
 function getOutgoingAttribution(text) {
@@ -238,21 +249,69 @@ function inferRole(record, sender, attendantName) {
   return 'client';
 }
 
-function normalizeMessage(record, index, attendantName) {
+function normalizeSystemMessage(record, index, variant, text) {
+  const timestamp = parseTimestamp(record, index);
+
+  return {
+    id: `${timestamp.value}-${index}`,
+    index,
+    sender: 'Sistema',
+    label: '',
+    role: 'system',
+    variant,
+    text,
+    timestamp,
+    type: normalizeText(record.type),
+  };
+}
+
+function normalizeMessage(record, index, context) {
   if (!record || typeof record !== 'object') {
     throw new Error(`A mensagem ${index + 1} não é um objeto válido.`);
   }
 
-  const rawText = normalizeText(
-    pickFirst(record, ['text', 'body', 'message', 'content', 'caption', 'transcription'], ''),
-    '[mensagem sem texto]',
-  );
+  const type = normalizeText(record.type).toLowerCase();
+  const rawTextValue = pickFirst(record, ['text', 'body', 'message', 'content', 'caption', 'transcription'], '');
+  const rawText = normalizeText(rawTextValue, '[mensagem sem texto]');
+
+  if (type === 'note_action') {
+    return normalizeSystemMessage(record, index, 'note-action', noteActionMessages[rawText] || rawText);
+  }
+
+  if (type === 'note') {
+    return normalizeSystemMessage(record, index, 'note', rawTextValue === null || rawTextValue === undefined ? '' : String(rawTextValue));
+  }
+
   const timestamp = parseTimestamp(record, index);
   const candidateSender = normalizeText(pickFirst(record, ['sender', 'from', 'author', 'name', 'participant', 'contactName', 'pushName'], ''));
-  const role = inferRole(record, candidateSender, attendantName);
+  const direction = normalizeText(pickFirst(record, ['direction', 'status'], '')).toLowerCase();
+  const role = inferRole(record, candidateSender, context.currentAgent);
   const attribution = role === 'agent' ? getOutgoingAttribution(rawText) : { agentName: '', text: rawText };
+  let agentName = context.currentAgent || 'MIA';
+  let text = role === 'agent' ? attribution.text : rawText;
+
+  if (role === 'agent') {
+    if (attribution.agentName) {
+      agentName = attribution.agentName;
+    } else if (['location', 'image_url'].includes(type)) {
+      agentName = context.currentAgent || 'MIA';
+    } else {
+      agentName = 'MIA';
+    }
+
+    context.currentAgent = agentName;
+  }
+
+  if (type === 'location') {
+    text = `📍 ${text}`.trim();
+  }
+
+  if (type === 'image_url') {
+    text = '📸 Foto';
+  }
+
   const sender = role === 'agent'
-    ? attendantName
+    ? agentName
     : normalizeText(
       pickFirst(record, ['sender', 'from', 'author', 'name', 'participant', 'contactName', 'pushName'], 'Cliente'),
       'Cliente',
@@ -262,23 +321,26 @@ function normalizeMessage(record, index, attendantName) {
     id: `${timestamp.value}-${index}`,
     index,
     sender,
-    label: role === 'agent' ? `Atendente - ${attendantName}` : 'Cliente',
+    label: role === 'agent' ? `Atendente - ${agentName}` : 'Cliente',
     role,
-    text: attribution.text,
+    variant: 'chat',
+    text,
     timestamp,
     type: normalizeText(record.type),
   };
 }
 
 function normalizeConversation(payload) {
-  const records = collectMessageRecords(payload).filter(isVisibleConversationMessage);
-  const attendantName = detectAttendantName(records);
-  const messages = records
-    .map((record, index) => normalizeMessage(record, index, attendantName))
-    .sort((a, b) => a.timestamp.value - b.timestamp.value || a.index - b.index);
+  const records = collectMessageRecords(payload)
+    .filter(isVisibleConversationMessage)
+    .map((record, index) => ({ record, index }))
+    .sort((a, b) => parseTimestamp(a.record, a.index).value - parseTimestamp(b.record, b.index).value || a.index - b.index);
+  const context = { currentAgent: 'MIA' };
+  const messages = records.map(({ record, index }) => normalizeMessage(record, index, context));
+  const attendantName = messages.find((message) => message.role === 'agent')?.sender || detectAttendantName(records.map(({ record }) => record)) || 'MIA';
 
   if (messages.length === 0) {
-    throw new Error('O JSON não possui mensagens de conversa para gerar o PDF. Mensagens internas como note/note_action são ignoradas.');
+    throw new Error('O JSON não possui mensagens de conversa para gerar o PDF.');
   }
 
   return { attendantName, messages };
@@ -307,14 +369,10 @@ function renderPreview() {
   elements.chatPreview.replaceChildren(
     ...state.messages.map((message) => {
       const row = document.createElement('article');
-      row.className = `message-row ${message.role}`;
+      row.className = `message-row ${message.role} ${message.variant || ''}`.trim();
 
       const bubble = document.createElement('div');
-      bubble.className = 'message-bubble';
-
-      const label = document.createElement('span');
-      label.className = 'message-label';
-      label.textContent = message.label;
+      bubble.className = `message-bubble ${message.variant || ''}`.trim();
 
       const text = document.createElement('p');
       text.className = 'message-text';
@@ -324,7 +382,14 @@ function renderPreview() {
       time.className = 'message-time';
       time.textContent = formatDateTime(message.timestamp);
 
-      bubble.append(label, text, time);
+      if (message.role === 'system') {
+        bubble.append(text, time);
+      } else {
+        const label = document.createElement('span');
+        label.className = 'message-label';
+        label.textContent = message.label;
+        bubble.append(label, text, time);
+      }
       row.append(bubble);
       return row;
     }),
@@ -473,23 +538,30 @@ class PdfDocument {
   }
 
   message(message) {
-    const fontSize = 10.5;
-    const maxBubbleWidth = 360;
+    const fontSize = message.role === 'system' ? 9.5 : 10.5;
+    const maxBubbleWidth = message.role === 'system' ? 420 : 360;
     const textLines = wrapText(message.text, maxBubbleWidth - 28, fontSize);
-    const labelLines = wrapText(message.label, maxBubbleWidth - 28, 9);
+    const labelLines = message.role === 'system' ? [] : wrapText(message.label, maxBubbleWidth - 28, 9);
     const time = formatDateTime(message.timestamp);
     const contentWidth = Math.max(
       ...textLines.map((line) => estimateTextWidth(line, fontSize)),
       ...labelLines.map((line) => estimateTextWidth(line, 9)),
       estimateTextWidth(time, 8),
     );
-    const bubbleWidth = Math.min(maxBubbleWidth, Math.max(150, contentWidth + 28));
-    const bubbleHeight = 22 + labelLines.length * 11 + textLines.length * 14 + (time ? 12 : 0);
-    const x = message.role === 'agent' ? this.width - this.margin - bubbleWidth : this.margin;
+    const bubbleWidth = Math.min(maxBubbleWidth, Math.max(message.role === 'system' ? 180 : 150, contentWidth + 28));
+    const bubbleHeight = message.role === 'system'
+      ? 18 + textLines.length * 13 + (time ? 10 : 0)
+      : 22 + labelLines.length * 11 + textLines.length * 14 + (time ? 12 : 0);
+    const x = message.role === 'system'
+      ? (this.width - bubbleWidth) / 2
+      : message.role === 'agent' ? this.width - this.margin - bubbleWidth : this.margin;
 
     this.ensureSpace(bubbleHeight + 12);
     const y = this.y - bubbleHeight;
-    this.roundedRect(x, y, bubbleWidth, bubbleHeight, 16, message.role === 'agent' ? 'DCF8C6' : 'FFFFFF');
+    const bubbleColor = message.role === 'system'
+      ? message.variant === 'note' ? 'FFF0B8' : 'E2E6E8'
+      : message.role === 'agent' ? 'DCF8C6' : 'FFFFFF';
+    this.roundedRect(x, y, bubbleWidth, bubbleHeight, message.role === 'system' ? 12 : 16, bubbleColor);
 
     let cursor = this.y - 17;
     for (const line of labelLines) {
@@ -497,14 +569,23 @@ class PdfDocument {
       cursor -= 11;
     }
 
-    cursor -= 3;
+    if (labelLines.length > 0) {
+      cursor -= 3;
+    }
+
     for (const line of textLines) {
-      this.text(line, x + 12, cursor, fontSize, '1F2C34');
-      cursor -= 14;
+      const textX = message.role === 'system'
+        ? x + (bubbleWidth - estimateTextWidth(line, fontSize)) / 2
+        : x + 12;
+      this.text(line, textX, cursor, fontSize, message.role === 'system' ? message.variant === 'note' ? '6F5300' : '53646D' : '1F2C34', message.role === 'system' ? 'Helvetica-Bold' : 'Helvetica');
+      cursor -= message.role === 'system' ? 13 : 14;
     }
 
     if (time) {
-      this.text(time, x + bubbleWidth - estimateTextWidth(time, 8) - 12, y + 8, 8, '667781');
+      const timeX = message.role === 'system'
+        ? x + (bubbleWidth - estimateTextWidth(time, 8)) / 2
+        : x + bubbleWidth - estimateTextWidth(time, 8) - 12;
+      this.text(time, timeX, y + 8, 8, '667781');
     }
 
     this.y = y - 10;
